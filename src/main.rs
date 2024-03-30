@@ -1,14 +1,11 @@
-use axum::{routing::get, Router};
+pub mod app;
+pub mod db;
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new().route("/health_check", get(root));
+    let app = app::create_app().await;
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 
     axum::serve(listener, app).await.unwrap()
-}
-
-async fn root() -> &'static str {
-    "Healthy!"
 }
