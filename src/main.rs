@@ -1,6 +1,7 @@
 mod app;
 mod db;
 mod models;
+mod routes;
 
 use std::str::FromStr;
 
@@ -24,7 +25,6 @@ async fn main() {
     //     .open_download_stream(Bson::ObjectId(id))
     //     .await
     //     .unwrap();
-    // download_stream.read_to_end(&mut buf).await.unwrap();
 
     // let cursor = std::io::Cursor::new(buf);
 
