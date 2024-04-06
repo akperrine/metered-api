@@ -37,13 +37,12 @@ pub async fn connection() -> &'static Database {
                 .bucket_name("image_bucket".to_string())
                 .write_concern(write_concern)
                 .build();
-            let bucket = database.gridfs_bucket(options);
+            database.gridfs_bucket(options);
             database
         })
         .await
 }
 
-// created 04/02/24 -> must check to see if works
 pub async fn get_bucket() -> Result<GridFsBucket, Box<dyn std::error::Error>> {
     let connection = connection().await;
 
