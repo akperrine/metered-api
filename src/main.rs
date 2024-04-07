@@ -1,5 +1,6 @@
 mod app;
 mod db;
+mod error;
 mod models;
 mod routes;
 
@@ -18,13 +19,15 @@ async fn main() {
     // let bucket = get_bucket().await.unwrap();
     // let path = "sig.png";
 
-    // // DOWNLOAD FILE INFO
+    // DOWNLOAD FILE INFO
     // let id = ObjectId::from_str("661190f4952cdb96750a4405").expect("Could not convert to ObjectId");
     // let mut buf: Vec<u8> = Vec::new();
     // let mut download_stream = bucket
     //     .open_download_stream(Bson::ObjectId(id))
     //     .await
     //     .unwrap();
+
+    // download_stream.read_to_end(&mut buf).await.unwrap();
 
     // let cursor = std::io::Cursor::new(buf);
 

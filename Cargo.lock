@@ -195,6 +195,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-macros"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00c055ee2d014ae5981ce1016374e8213682aa14d9bf40e48ab48b5f3ef20eaa"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.57",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1486,13 +1498,17 @@ checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
 name = "metered-api"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "axum",
+ "axum-macros",
  "chrono",
  "futures-util",
  "image",
  "mongodb 2.8.2",
  "serde",
  "serde_derive",
+ "serde_json",
+ "thiserror",
  "tokio 1.37.0",
  "toml",
  "wither",
