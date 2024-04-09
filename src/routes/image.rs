@@ -2,20 +2,23 @@ use std::str::FromStr;
 
 use anyhow::Result;
 use axum::{
+    body::{Body, BodyDataStream, Bytes},
     extract::Path,
-    http::StatusCode,
+    http::{header, response, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Json},
     routing::{delete, get, post},
     Error, Extension, Router,
 };
 
 use axum_macros::debug_handler;
-use futures_util::AsyncReadExt;
-use image::{DynamicImage, ImageFormat};
+use futures_util::{io::BufWriter, AsyncReadExt};
+use image::{codecs::png::PngEncoder, DynamicImage, ImageEncoder, ImageFormat};
 use mongodb::{
     bson::{oid::ObjectId, Bson},
     GridFsBucket,
 };
+use tokio::{fs::File, io::AsyncWriteExt};
+use tokio_util::io::ReaderStream;
 
 use crate::db::get_bucket;
 
@@ -42,17 +45,19 @@ pub async fn get_image_by_id(
         .open_download_stream(Bson::ObjectId(id))
         .await
         .unwrap();
-    download_stream.read_to_end(&mut buffer).await.unwrap();
+    let result = download_stream.read_to_end(&mut buffer).await.unwrap();
 
-    let cursor = std::io::Cursor::new(buffer);
+    let cursor = std::io::Cursor::new(&mut buffer);
     let img = image::io::Reader::with_format(cursor, ImageFormat::Png)
         .decode()
         .map_err(|e| format!("Failed to decode PNG image: {:?}", e))
         .unwrap();
 
-    let img_bytes = img.into_bytes();
+    let bytes: Bytes = buffer.into();
 
-    Ok((StatusCode::OK, img_bytes))
+    let headers = [(header::CONTENT_TYPE, "image/png")];
+
+    Ok((headers, bytes))
 }
 
 // let id = ObjectId::from_str("661190f4952cdb96750a4405").expect("Could not convert to ObjectId");
