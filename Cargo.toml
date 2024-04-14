@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-axum = {version = "0.7.5"}
+axum = {version = "0.7.5", features = ["multipart"]}
 axum-macros = "0.4.1"
 chrono = "0.4.37"
 futures-util = "0.3.30"
