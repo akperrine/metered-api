@@ -1,9 +1,11 @@
+use std::time::Duration;
+
 use tokio::sync::OnceCell;
 
 use mongodb::{
     bson::doc,
-    options::{ClientOptions, ServerApi, ServerApiVersion},
-    Client, Database,
+    options::{ClientOptions, GridFsBucketOptions, ServerApi, ServerApiVersion, WriteConcern},
+    Client, Database, GridFsBucket,
 };
 use serde::Deserialize;
 
@@ -26,9 +28,34 @@ pub async fn connection() -> &'static Database {
         .get_or_init(|| async {
             let client = Client::with_options(client_options).unwrap();
 
-            client.database("images")
+            println!("init client db");
+            let database = client.database("images");
+            let write_concern = WriteConcern::builder()
+                .w_timeout(Duration::new(5, 0))
+                .build();
+            let options = GridFsBucketOptions::builder()
+                .bucket_name("image_bucket".to_string())
+                .write_concern(write_concern)
+                .build();
+            database.gridfs_bucket(options);
+            database
         })
         .await
+}
+
+pub async fn get_bucket() -> Result<GridFsBucket, Box<dyn std::error::Error>> {
+    let connection = connection().await;
+
+    let write_concern = WriteConcern::builder()
+        .w_timeout(Duration::new(5, 0))
+        .build();
+    let options = GridFsBucketOptions::builder()
+        .bucket_name("image_bucket".to_string())
+        .write_concern(write_concern)
+        .build();
+
+    let bucket = connection.gridfs_bucket(options);
+    Ok(bucket)
 }
 
 fn get_env_config() -> Config {
