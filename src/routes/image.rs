@@ -106,14 +106,3 @@ pub async fn get_image_by_id(
 
     Ok((headers, bytes))
 }
-
-#[derive(Debug)]
-struct ProcessImageError(String);
-
-impl fmt::Display for ProcessImageError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "ProcessImageError: {}", self.0)
-    }
-}
-
-impl std::error::Error for ProcessImageError {}
