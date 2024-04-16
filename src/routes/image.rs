@@ -20,7 +20,6 @@ use futures_util::{AsyncReadExt, TryStreamExt};
 use image::ImageFormat;
 use mongodb::bson::{oid::ObjectId, Bson};
 use serde_json::json;
-use tokio::fs;
 
 use crate::db::get_bucket;
 
@@ -28,6 +27,9 @@ use crate::db::get_bucket;
 //1.) Default body limit
 //2.) resource not found
 //3.) **handle incorrectly sent request
+
+// TESTs
+// Check correct format
 
 pub fn create_route() -> Router {
     Router::new()
@@ -45,23 +47,30 @@ pub async fn post_image(
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     while let Some(mut field) = multipart.next_field().await.unwrap() {
-        let name = field.name().unwrap().to_string();
-        let fieldName = field.file_name().unwrap();
-        if let Some(filename) = field.file_name().map(ToString::to_string) {
-            println!(
-                "found file field with name: {}, filename: {}",
-                name, filename
-            );
+        println!("{}", field.name().unwrap());
+        println!("{}", field.name().unwrap().eq("file"));
+        let res = field.name().unwrap() == "file";
+        println!("{}", res);
 
-            let mut data: Vec<u8> = Vec::new();
-            while let Some(chunk) = field.chunk().await.unwrap() {
-                data.extend_from_slice(&chunk);
+        if field.name().unwrap().eq("file") {
+            let name = field.name().unwrap().to_string();
+            let fieldName = field.file_name().unwrap();
+            if let Some(filename) = field.file_name().map(ToString::to_string) {
+                println!(
+                    "found file field with name: {}, filename: {}",
+                    name, filename
+                );
+
+                let mut data: Vec<u8> = Vec::new();
+                while let Some(chunk) = field.chunk().await.unwrap() {
+                    data.extend_from_slice(&chunk);
+                }
+
+                // let bucket = get_bucket().await.unwrap();
+                // let mut upload_stream = bucket.open_upload_stream(&filename, None);
+                // upload_stream.write_all(&data).await.unwrap();
+                // upload_stream.close().await.unwrap();
             }
-
-            let bucket = get_bucket().await.unwrap();
-            let mut upload_stream = bucket.open_upload_stream(&filename, None);
-            upload_stream.write_all(&data).await.unwrap();
-            upload_stream.close().await.unwrap();
         }
     }
 
