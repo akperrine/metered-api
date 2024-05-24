@@ -1605,6 +1605,7 @@ dependencies = [
  "chrono",
  "futures-util",
  "image",
+ "lazy_static",
  "mongodb 2.8.2",
  "reqwest 0.12.4",
  "serde",

@@ -18,7 +18,13 @@ static CONNECTION: OnceCell<Database> = OnceCell::const_new();
 
 pub async fn connection() -> &'static Database {
     let config = get_env_config();
-    let db_collection = env::var("RUN_MODE").unwrap_or_else(|_| "images".into());
+    let run_mode = env::var("RUN_MODE").unwrap_or_else(|_| "dev".into());
+    let db_collection: &str;
+    if run_mode.to_lowercase() == "test" {
+        db_collection = "images-test";
+    } else {
+        db_collection = "images";
+    }
 
     let mut client_options = ClientOptions::parse_async(config.mongo_url).await.unwrap();
 
