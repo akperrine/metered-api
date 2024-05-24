@@ -19,11 +19,11 @@ static CONNECTION: OnceCell<Database> = OnceCell::const_new();
 pub async fn connection() -> &'static Database {
     let config = get_env_config();
     let run_mode = env::var("RUN_MODE").unwrap_or_else(|_| "dev".into());
-    let db_collection: &str;
+    let db_name: &str;
     if run_mode.to_lowercase() == "test" {
-        db_collection = "images-test";
+        db_name = "images-test";
     } else {
-        db_collection = "images";
+        db_name = "images";
     }
 
     let mut client_options = ClientOptions::parse_async(config.mongo_url).await.unwrap();
@@ -36,7 +36,7 @@ pub async fn connection() -> &'static Database {
             let client = Client::with_options(client_options).unwrap();
 
             println!("init client db");
-            let database = client.database(&db_collection);
+            let database = client.database(&db_name);
             let write_concern = WriteConcern::builder()
                 .w_timeout(Duration::new(5, 0))
                 .build();
@@ -45,7 +45,7 @@ pub async fn connection() -> &'static Database {
                 .write_concern(write_concern)
                 .build();
             database.gridfs_bucket(options);
-            println!("Connected to collection: {}", &db_collection);
+            println!("Connected to Mongo Database: {}", &db_name);
             database
         })
         .await
