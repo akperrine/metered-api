@@ -66,10 +66,10 @@ pub async fn post_image(
                     data.extend_from_slice(&chunk);
                 }
 
-                // let bucket = get_bucket().await.unwrap();
-                // let mut upload_stream = bucket.open_upload_stream(&filename, None);
-                // upload_stream.write_all(&data).await.unwrap();
-                // upload_stream.close().await.unwrap();
+                let bucket = get_bucket().await.unwrap();
+                let mut upload_stream = bucket.open_upload_stream(&filename, None);
+                upload_stream.write_all(&data).await.unwrap();
+                upload_stream.close().await.unwrap();
             }
         }
     }

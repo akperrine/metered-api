@@ -37,18 +37,30 @@ pub async fn connection() -> &'static Database {
 
             println!("init client db");
             let database = client.database(&db_name);
-            let write_concern = WriteConcern::builder()
-                .w_timeout(Duration::new(5, 0))
-                .build();
-            let options = GridFsBucketOptions::builder()
-                .bucket_name("image_bucket".to_string())
-                .write_concern(write_concern)
-                .build();
-            database.gridfs_bucket(options);
+            let _ = create_bucket(&database);
+            // let write_concern = WriteConcern::builder()
+            //     .w_timeout(Duration::new(5, 0))
+            //     .build();
+            // let options = GridFsBucketOptions::builder()
+            //     .bucket_name("image_bucket".to_string())
+            //     .write_concern(write_concern)
+            //     .build();
+            // database.gridfs_bucket(options);
             println!("Connected to Mongo Database: {}", &db_name);
             database
         })
         .await
+}
+
+pub async fn create_bucket(database: &Database) -> () {
+    let write_concern = WriteConcern::builder()
+        .w_timeout(Duration::new(5, 0))
+        .build();
+    let options = GridFsBucketOptions::builder()
+        .bucket_name("image_bucket".to_string())
+        .write_concern(write_concern)
+        .build();
+    database.gridfs_bucket(options);
 }
 
 pub async fn get_bucket() -> Result<GridFsBucket, Box<dyn std::error::Error>> {
