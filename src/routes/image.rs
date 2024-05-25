@@ -18,7 +18,7 @@ use axum_macros::debug_handler;
 use futures_util::{stream::StreamExt, AsyncWriteExt};
 use futures_util::{AsyncReadExt, TryStreamExt};
 use image::ImageFormat;
-use mongodb::bson::{oid::ObjectId, Bson};
+use mongodb::bson::{doc, oid::ObjectId, Bson};
 use serde_json::json;
 
 use crate::db::get_bucket;
@@ -34,6 +34,7 @@ use crate::db::get_bucket;
 pub fn create_route() -> Router {
     Router::new()
         .route("/images/:id", get(get_image_by_id))
+        .route("/images/name/:name", get(get_image_by_name))
         .route("/images", post(post_image))
         .route("/images/:id", delete(dummy_fn))
 }
@@ -102,5 +103,30 @@ pub async fn get_image_by_id(
 
     let headers = [(header::CONTENT_TYPE, "image/png")];
 
+    Ok((headers, bytes))
+}
+
+#[debug_handler]
+pub async fn get_image_by_name(
+    Path(image_name): Path<String>,
+) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
+    let bucket = get_bucket().await.unwrap();
+    let mut buffer = Vec::new();
+    let find_query = doc! {"filename": image_name};
+    let mut cursor = bucket.find(find_query, None).await.unwrap();
+    while let Some(res) = cursor.try_next().await.unwrap() {
+        println!("File: {:?}", res);
+        let mut download_stream = bucket.open_download_stream(res.id).await.unwrap();
+        let result = download_stream.read_to_end(&mut buffer).await.unwrap();
+
+        let cursor = std::io::Cursor::new(&mut buffer);
+        let img = image::io::Reader::with_format(cursor, ImageFormat::Png)
+            .decode()
+            .map_err(|e| format!("Failed to decode PNG image: {:?}", e))
+            .unwrap();
+    }
+    let bytes: Bytes = buffer.into();
+    let headers = [(header::CONTENT_TYPE, "image/png")];
+    println!("HIIIITDKLS");
     Ok((headers, bytes))
 }
