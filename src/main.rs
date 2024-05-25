@@ -4,6 +4,9 @@ mod error;
 mod models;
 mod routes;
 
+#[cfg(test)]
+mod tests;
+
 use std::str::FromStr;
 
 use futures_util::AsyncReadExt;

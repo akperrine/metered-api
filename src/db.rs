@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{env, time::Duration};
 
 use tokio::sync::OnceCell;
 
@@ -10,14 +10,21 @@ use mongodb::{
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-struct Config {
-    mongo_url: String,
+pub struct Config {
+    pub mongo_url: String,
 }
 
 static CONNECTION: OnceCell<Database> = OnceCell::const_new();
 
 pub async fn connection() -> &'static Database {
     let config = get_env_config();
+    let run_mode = env::var("RUN_MODE").unwrap_or_else(|_| "dev".into());
+    let db_name: &str;
+    if run_mode.to_lowercase() == "test" {
+        db_name = "images-test";
+    } else {
+        db_name = "images";
+    }
 
     let mut client_options = ClientOptions::parse_async(config.mongo_url).await.unwrap();
 
@@ -29,18 +36,31 @@ pub async fn connection() -> &'static Database {
             let client = Client::with_options(client_options).unwrap();
 
             println!("init client db");
-            let database = client.database("images");
-            let write_concern = WriteConcern::builder()
-                .w_timeout(Duration::new(5, 0))
-                .build();
-            let options = GridFsBucketOptions::builder()
-                .bucket_name("image_bucket".to_string())
-                .write_concern(write_concern)
-                .build();
-            database.gridfs_bucket(options);
+            let database = client.database(&db_name);
+            let _ = create_bucket(&database);
+            // let write_concern = WriteConcern::builder()
+            //     .w_timeout(Duration::new(5, 0))
+            //     .build();
+            // let options = GridFsBucketOptions::builder()
+            //     .bucket_name("image_bucket".to_string())
+            //     .write_concern(write_concern)
+            //     .build();
+            // database.gridfs_bucket(options);
+            println!("Connected to Mongo Database: {}", &db_name);
             database
         })
         .await
+}
+
+pub async fn create_bucket(database: &Database) -> () {
+    let write_concern = WriteConcern::builder()
+        .w_timeout(Duration::new(5, 0))
+        .build();
+    let options = GridFsBucketOptions::builder()
+        .bucket_name("image_bucket".to_string())
+        .write_concern(write_concern)
+        .build();
+    database.gridfs_bucket(options);
 }
 
 pub async fn get_bucket() -> Result<GridFsBucket, Box<dyn std::error::Error>> {
@@ -58,7 +78,7 @@ pub async fn get_bucket() -> Result<GridFsBucket, Box<dyn std::error::Error>> {
     Ok(bucket)
 }
 
-fn get_env_config() -> Config {
+pub fn get_env_config() -> Config {
     let env_vars = std::fs::read_to_string("env.toml").expect("unable to read config file");
     let config: Config = toml::from_str(&env_vars).expect("unable to parse toml file");
     config
