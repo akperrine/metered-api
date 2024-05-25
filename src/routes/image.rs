@@ -8,7 +8,7 @@ use std::{
 use axum::{
     body::Bytes,
     extract::{Multipart, Path},
-    http::{header, StatusCode},
+    http::{header, Error, StatusCode},
     response::{IntoResponse, Json},
     routing::{delete, get, post},
     Router,
@@ -59,13 +59,25 @@ pub async fn post_image(
                     "found file field with name: {}, filename: {}",
                     name, filename
                 );
+                let bucket = get_bucket().await.unwrap();
+                // check if file name already used
+                let find_query = doc! {"filename": doc! {"$exists": &filename}};
+                let mut cursor = bucket.find(find_query, None).await.unwrap();
+
+                while let Some(_) = cursor.try_next().await.unwrap() {
+                    return Err((
+                        StatusCode::BAD_REQUEST,
+                        Json(json!(
+                            "image name is already taken. Please choose a unique name"
+                        )),
+                    ));
+                }
 
                 let mut data: Vec<u8> = Vec::new();
                 while let Some(chunk) = field.chunk().await.unwrap() {
                     data.extend_from_slice(&chunk);
                 }
 
-                let bucket = get_bucket().await.unwrap();
                 let mut upload_stream = bucket.open_upload_stream(&filename, None);
                 upload_stream.write_all(&data).await.unwrap();
                 upload_stream.close().await.unwrap();
