@@ -44,8 +44,6 @@ pub async fn use_test_app<F>(test: F)
 where
     F: std::future::Future,
 {
-    // RUNTIME.block_on(async move {
-    println!("hiiiiii");
     start_test_api().await;
     let db = connection().await;
     let image_bucket = get_bucket().await.unwrap();
@@ -55,9 +53,5 @@ where
     println!("collections {:?}", db.list_collection_names(None).await);
 
     create_bucket(&db).await;
-    println!("dropped `{:?}`", a);
     test.await;
-    // })
-
-    //
 }

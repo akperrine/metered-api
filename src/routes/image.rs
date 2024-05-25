@@ -47,8 +47,6 @@ pub async fn post_image(
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     while let Some(mut field) = multipart.next_field().await.unwrap() {
-        println!("{}", field.name().unwrap());
-        println!("{}", field.name().unwrap().eq("file"));
         let res = field.name().unwrap() == "file";
         println!("{}", res);
 
