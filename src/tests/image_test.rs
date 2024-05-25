@@ -23,10 +23,7 @@ use crate::{db::get_env_config, tests::setup::use_test_app};
 async fn test_post_get_delete_png() {
     println!("BI");
     println!("Not Hit");
-    use_test_app(async move {
-        assert_eq!(1, 1);
-    })
-    .await;
+    use_test_app(async move {}).await;
     // let db_lists = db.list_collection_names(None).await;
     println!("??");
     // println!("{:?}", db_lists);

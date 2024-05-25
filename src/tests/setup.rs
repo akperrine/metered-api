@@ -6,7 +6,7 @@ use crate::{
 };
 use lazy_static::lazy_static;
 use mongodb::{
-    bson::Document,
+    bson::{doc, Document},
     options::{ClientOptions, ServerApi, ServerApiVersion},
     Client, Collection, Database,
 };
@@ -49,12 +49,13 @@ where
     start_test_api().await;
     let db = connection().await;
     let image_bucket = get_bucket().await.unwrap();
-    image_bucket.drop().await;
-    create_bucket(&db);
-    // println!("db {:?}", db);
+    let a = image_bucket.drop().await.unwrap();
+    let user_collection: Collection<Document> = db.collection("users");
+    let _ = user_collection.delete_many(doc! {}, None).await;
     println!("collections {:?}", db.list_collection_names(None).await);
-    // let a = db.drop(None).await.unwrap();
-    // println!("dropped `{:?}`", a);
+
+    create_bucket(&db).await;
+    println!("dropped `{:?}`", a);
     test.await;
     // })
 
