@@ -43,8 +43,6 @@ where
         image_bucket.drop().await.unwrap();
         let user_collection: Collection<Document> = db.collection("users");
         let _ = user_collection.delete_many(doc! {}, None).await;
-        println!("collections {:?}", db.list_collection_names(None).await);
-
         create_bucket(&db).await;
         test.await;
     })
