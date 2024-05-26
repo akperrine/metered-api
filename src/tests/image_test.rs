@@ -73,7 +73,6 @@ fn test_post_get_delete_png() {
         );
         assert_eq!(status_code, expected);
 
-        let client = Client::new();
         let get_right_res = client
             .get("http://localhost:3001/images/name/test_img_1.png")
             .send()
@@ -85,7 +84,6 @@ fn test_post_get_delete_png() {
         println!("{},{}", get_correct_status_code, expected);
         assert_eq!(get_correct_status_code, expected);
 
-        let client = Client::new();
         let get_wrong_res = client
             .get("http://localhost:3001/images/name/wrong_name.png")
             .send()
@@ -95,6 +93,17 @@ fn test_post_get_delete_png() {
         let get_wrong_status_code = get_wrong_res.status();
         let expected = StatusCode::BAD_REQUEST;
         println!("{},{}", get_wrong_status_code, expected);
+        assert_eq!(status_code, expected);
+
+        let delete_res = client
+            .delete("http://localhost:3001/images/name")
+            .send()
+            .await
+            .unwrap();
+
+        let delete_status_code = get_wrong_res.status();
+        let expected = StatusCode::OK;
+        println!("{},{}", delete_status_code, expected);
         assert_eq!(status_code, expected);
     });
 }
