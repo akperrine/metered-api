@@ -1,14 +1,12 @@
 use std::env;
 
 use crate::{
-    app::{self, create_app},
-    db::{connection, create_bucket, get_bucket, get_env_config},
+    app::{self},
+    db::{connection, create_bucket, get_bucket},
 };
-use lazy_static::lazy_static;
 use mongodb::{
     bson::{doc, Document},
-    options::{ClientOptions, ServerApi, ServerApiVersion},
-    Client, Collection, Database,
+    Collection,
 };
 use once_cell::sync::Lazy;
 use tokio::{runtime::Runtime, sync::OnceCell};
@@ -19,8 +17,8 @@ static API: OnceCell<()> = OnceCell::const_new();
 pub async fn start_test_api() {
     API.get_or_init(|| async {
         env::set_var("RUN_MODE", "test");
+        connection().await;
 
-        let db = connection().await;
         let app = app::create_app().await;
         let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
         println!("local host runing on port 3001");
