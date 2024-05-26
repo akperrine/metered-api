@@ -47,7 +47,7 @@ fn test_post_get_delete_png() {
         let resp_message = post_repeat_res.text().await.unwrap();
         assert_eq!(
             resp_message,
-            "\"image name is already taken. Please choose a unique name\""
+            "{\"message\":\"image name is already taken. Please choose a unique name\"}"
         );
 
         println!("Getting image by name: should return: 200 Ok");

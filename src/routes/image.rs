@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{error::Error, str::FromStr};
 
 use axum::{
     body::Bytes,
@@ -23,14 +23,6 @@ use crate::db::get_bucket;
 
 //TODO: ERROR TODO logic
 //1.) Default body limit
-//2.) resource not found
-//3.) **handle incorrectly sent request
-//4.) Add Error handling for each
-//5.) Clean up commented out code
-//6.) refactor reused code
-
-// TESTs
-// Check correct format
 
 pub fn create_route() -> Router {
     Router::new()
@@ -48,7 +40,7 @@ pub async fn dummy_fn() {
 #[debug_handler]
 pub async fn post_image(
     mut multipart: Multipart,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
     while let Some(mut field) = multipart.next_field().await.unwrap() {
         let res = field.name().unwrap() == "file";
         println!("{}", res);
@@ -67,14 +59,11 @@ pub async fn post_image(
                 let mut cursor = bucket.find(find_query, None).await.unwrap();
 
                 while let Some(_) = cursor.try_next().await.unwrap() {
-                    return Err((
+                    return Err(error_fmt(
                         StatusCode::BAD_REQUEST,
-                        Json(json!(
-                            "image name is already taken. Please choose a unique name"
-                        )),
+                        "image name is already taken. Please choose a unique name",
                     ));
                 }
-
                 let mut data: Vec<u8> = Vec::new();
                 while let Some(chunk) = field.chunk().await.unwrap() {
                     data.extend_from_slice(&chunk);
@@ -84,6 +73,11 @@ pub async fn post_image(
                 upload_stream.write_all(&data).await.unwrap();
                 upload_stream.close().await.unwrap();
             }
+        } else {
+            return Err(error_fmt(
+                StatusCode::BAD_REQUEST,
+                "multipart form data requires field name: file with key as the loaded file",
+            ));
         }
     }
 
@@ -114,10 +108,9 @@ pub async fn get_image_by_name(
         let id = res.id;
         return get_response_from_gridfs(&bucket, id).await;
     }
-    Err((
+    Err(error_fmt(
         StatusCode::BAD_REQUEST,
-        Json(serde_json::to_vec(&json!({ "message": "Image not found with this name" })).unwrap())
-            .to_vec(),
+        "Image not found with this name",
     ))
 }
 
@@ -157,9 +150,13 @@ pub async fn get_response_from_gridfs(
             let headers = [(header::CONTENT_TYPE, "image/png")];
             Ok((headers, bytes))
         }
-        Err(_) => Err((
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::to_vec(&json!({ "message": "Image id not found" })).unwrap()).to_vec(),
-        )),
+        Err(_) => Err(error_fmt(StatusCode::BAD_REQUEST, "Image id not found")),
     }
+}
+
+fn error_fmt(status_code: StatusCode, message: &str) -> (StatusCode, Vec<u8>) {
+    (
+        status_code,
+        Json(serde_json::to_vec(&json!({ "message": message })).unwrap()).to_vec(),
+    )
 }
