@@ -18,7 +18,10 @@ use axum_macros::debug_handler;
 use futures_util::{stream::StreamExt, AsyncWriteExt};
 use futures_util::{AsyncReadExt, TryStreamExt};
 use image::ImageFormat;
-use mongodb::bson::{doc, oid::ObjectId, Bson};
+use mongodb::{
+    bson::{doc, oid::ObjectId, Bson},
+    GridFsBucket,
+};
 use serde_json::json;
 
 use crate::db::get_bucket;
@@ -27,6 +30,9 @@ use crate::db::get_bucket;
 //1.) Default body limit
 //2.) resource not found
 //3.) **handle incorrectly sent request
+//4.) Add Error handling for each
+//5.) Clean up commented out code
+//6.) refactor reused code
 
 // TESTs
 // Check correct format
@@ -99,34 +105,35 @@ pub async fn get_image_by_id(
     println!("{}", id);
     let bucket = get_bucket().await.unwrap();
     let id = ObjectId::from_str(&id).expect("could not convert id to ObjectId");
-    let mut buffer: Vec<u8> = Vec::new();
-    let mut download_stream = bucket.open_download_stream(Bson::ObjectId(id)).await;
-    match download_stream {
-        Ok(mut stream) => {
-            let result = stream.read_to_end(&mut buffer).await.unwrap();
+    get_response_from_gridfs(&bucket, id).await
+    // let mut buffer: Vec<u8> = Vec::new();
+    // let mut download_stream = bucket.open_download_stream(Bson::ObjectId(id)).await;
+    // match download_stream {
+    //     Ok(mut stream) => {
+    //         let result = stream.read_to_end(&mut buffer).await.unwrap();
 
-            let cursor = std::io::Cursor::new(&mut buffer);
-            let img = image::io::Reader::with_format(cursor, ImageFormat::Png)
-                .decode()
-                .map_err(|e| format!("Failed to decode PNG image: {:?}", e))
-                .unwrap();
+    //         let cursor = std::io::Cursor::new(&mut buffer);
+    //         let img = image::io::Reader::with_format(cursor, ImageFormat::Png)
+    //             .decode()
+    //             .map_err(|e| format!("Failed to decode PNG image: {:?}", e))
+    //             .unwrap();
 
-            let bytes: Bytes = buffer.into();
+    //         let bytes: Bytes = buffer.into();
 
-            let headers = [(header::CONTENT_TYPE, "image/png")];
+    //         let headers = [(header::CONTENT_TYPE, "image/png")];
 
-            Ok((headers, bytes))
-        }
-        Err(err) => {
-            let headers = [(header::CONTENT_TYPE, "image/png")];
+    //         Ok((headers, bytes))
+    //     }
+    //     Err(err) => {
+    //         let headers = [(header::CONTENT_TYPE, "image/png")];
 
-            Err((
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::to_vec(&json!({ "message": "Image id not found" })).unwrap())
-                    .to_vec(),
-            ))
-        }
-    }
+    //         Err((
+    //             StatusCode::BAD_REQUEST,
+    //             Json(serde_json::to_vec(&json!({ "message": "Image id not found" })).unwrap())
+    //                 .to_vec(),
+    //         ))
+    //     }
+    // }
     // let result = download_stream.read_to_end(&mut buffer).await.unwrap();
 
     // let cursor = std::io::Cursor::new(&mut buffer);
@@ -147,9 +154,9 @@ pub async fn get_image_by_name(
     Path(image_name): Path<String>,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
     let bucket = get_bucket().await.unwrap();
-    let mut buffer = Vec::new();
     let find_query = doc! {"filename": image_name};
     let mut cursor = bucket.find(find_query, None).await.unwrap();
+    let mut buffer = Vec::new();
     while let Some(res) = cursor.try_next().await.unwrap() {
         println!("File: {:?}", res);
         let mut download_stream = bucket.open_download_stream(res.id).await.unwrap();
@@ -184,4 +191,39 @@ pub async fn delete_image_by_id(
             "message": "Image successfully deleted"
         })),
     ))
+}
+
+// Common Service functions
+pub async fn get_response_from_gridfs(
+    bucket: &GridFsBucket,
+    id: ObjectId,
+) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
+    let mut buffer: Vec<u8> = Vec::new();
+    let mut download_stream = bucket.open_download_stream(Bson::ObjectId(id)).await;
+    match download_stream {
+        Ok(mut stream) => {
+            let result = stream.read_to_end(&mut buffer).await.unwrap();
+
+            let cursor = std::io::Cursor::new(&mut buffer);
+            let img = image::io::Reader::with_format(cursor, ImageFormat::Png)
+                .decode()
+                .map_err(|e| format!("Failed to decode PNG image: {:?}", e))
+                .unwrap();
+
+            let bytes: Bytes = buffer.into();
+
+            let headers = [(header::CONTENT_TYPE, "image/png")];
+
+            Ok((headers, bytes))
+        }
+        Err(err) => {
+            let headers = [(header::CONTENT_TYPE, "image/png")];
+
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::to_vec(&json!({ "message": "Image id not found" })).unwrap())
+                    .to_vec(),
+            ))
+        }
+    }
 }
