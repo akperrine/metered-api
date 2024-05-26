@@ -140,6 +140,17 @@ fn test_post_get_delete_png() {
         let expected = StatusCode::OK;
         println!("Delete Status codes: {},{}", delete_status_code, expected);
         assert_eq!(delete_status_code, expected);
+
+        let get_right_id_after_delete = client
+            .get(format!("http://localhost:3001/images/{}", &id))
+            .send()
+            .await
+            .unwrap();
+
+        let get_correct_id_code = get_right_id_after_delete.status();
+        let expected = StatusCode::BAD_REQUEST;
+        println!("{},{}", get_correct_id_code, expected);
+        assert_eq!(get_correct_id_code, expected);
     });
 }
 
