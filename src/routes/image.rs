@@ -37,6 +37,7 @@ pub fn create_route() -> Router {
         .route("/images/name/:name", get(get_image_by_name))
         .route("/images", post(post_image))
         .route("/images/:id", delete(dummy_fn))
+        .route("/images/delete/:id", delete(delete_image_by_id))
 }
 
 pub async fn dummy_fn() {
@@ -99,23 +100,46 @@ pub async fn get_image_by_id(
     let bucket = get_bucket().await.unwrap();
     let id = ObjectId::from_str(&id).expect("could not convert id to ObjectId");
     let mut buffer: Vec<u8> = Vec::new();
-    let mut download_stream = bucket
-        .open_download_stream(Bson::ObjectId(id))
-        .await
-        .unwrap();
-    let result = download_stream.read_to_end(&mut buffer).await.unwrap();
+    let mut download_stream = bucket.open_download_stream(Bson::ObjectId(id)).await;
+    match download_stream {
+        Ok(mut stream) => {
+            let result = stream.read_to_end(&mut buffer).await.unwrap();
 
-    let cursor = std::io::Cursor::new(&mut buffer);
-    let img = image::io::Reader::with_format(cursor, ImageFormat::Png)
-        .decode()
-        .map_err(|e| format!("Failed to decode PNG image: {:?}", e))
-        .unwrap();
+            let cursor = std::io::Cursor::new(&mut buffer);
+            let img = image::io::Reader::with_format(cursor, ImageFormat::Png)
+                .decode()
+                .map_err(|e| format!("Failed to decode PNG image: {:?}", e))
+                .unwrap();
 
-    let bytes: Bytes = buffer.into();
+            let bytes: Bytes = buffer.into();
 
-    let headers = [(header::CONTENT_TYPE, "image/png")];
+            let headers = [(header::CONTENT_TYPE, "image/png")];
 
-    Ok((headers, bytes))
+            Ok((headers, bytes))
+        }
+        Err(err) => {
+            let headers = [(header::CONTENT_TYPE, "image/png")];
+
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::to_vec(&json!({ "message": "Image id not found" })).unwrap())
+                    .to_vec(),
+            ))
+        }
+    }
+    // let result = download_stream.read_to_end(&mut buffer).await.unwrap();
+
+    // let cursor = std::io::Cursor::new(&mut buffer);
+    // let img = image::io::Reader::with_format(cursor, ImageFormat::Png)
+    //     .decode()
+    //     .map_err(|e| format!("Failed to decode PNG image: {:?}", e))
+    //     .unwrap();
+
+    // let bytes: Bytes = buffer.into();
+
+    // let headers = [(header::CONTENT_TYPE, "image/png")];
+
+    // Ok((headers, bytes))
 }
 
 #[debug_handler]
@@ -141,4 +165,23 @@ pub async fn get_image_by_name(
     let headers = [(header::CONTENT_TYPE, "image/png")];
     println!("HIIIITDKLS");
     Ok((headers, bytes))
+}
+
+#[debug_handler]
+pub async fn delete_image_by_id(
+    Path(id): Path<String>,
+) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
+    println!("id: {}", id);
+    let bucket = get_bucket().await.unwrap();
+    let obj_id = ObjectId::from_str(&id).unwrap();
+    println!("object id: {}", &obj_id);
+    let result = bucket.delete(Bson::ObjectId(obj_id)).await.unwrap();
+    println!("result from delete, {:?}", result);
+    let headers = [(header::CONTENT_TYPE, "image/png")];
+    Ok((
+        headers,
+        Json(json!({
+            "message": "Image successfully deleted"
+        })),
+    ))
 }
