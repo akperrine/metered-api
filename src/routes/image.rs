@@ -148,8 +148,17 @@ pub async fn get_image_by_name(
 pub async fn delete_image_by_id(
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
-    let buffer = Vec::new();
-    let bytes: Bytes = buffer.into();
+    println!("id: {}", id);
+    let bucket = get_bucket().await.unwrap();
+    let obj_id = ObjectId::from_str(&id).unwrap();
+    println!("object id: {}", &obj_id);
+    let result = bucket.delete(Bson::ObjectId(obj_id)).await.unwrap();
+    println!("result from delete, {:?}", result);
     let headers = [(header::CONTENT_TYPE, "image/png")];
-    Ok((headers, bytes))
+    Ok((
+        headers,
+        Json(json!({
+            "message": "Image successfully loaded"
+        })),
+    ))
 }

@@ -79,7 +79,7 @@ fn test_post_get_delete_png() {
         println!("id: {}", id);
 
         let get_right_id = client
-            .get(format!("http://localhost:3001/images/{}", id))
+            .get(format!("http://localhost:3001/images/{}", &id))
             .send()
             .await
             .unwrap();
@@ -130,16 +130,16 @@ fn test_post_get_delete_png() {
         println!("{},{}", get_wrong_status_code, expected);
         assert_eq!(status_code, expected);
 
-        // let delete_res = client
-        //     .delete("http://localhost:3001/images/delete/")
-        //     .send()
-        //     .await
-        //     .unwrap();
+        let delete_res = client
+            .delete(format!("http://localhost:3001/images/delete/{}", &id))
+            .send()
+            .await
+            .unwrap();
 
-        // let delete_status_code = delete_res.status();
-        // let expected = StatusCode::OK;
-        // println!("{},{}", delete_status_code, expected);
-        // assert_eq!(status_code, expected);
+        let delete_status_code = delete_res.status();
+        let expected = StatusCode::OK;
+        println!("Delete Status codes: {},{}", delete_status_code, expected);
+        assert_eq!(delete_status_code, expected);
     });
 }
 
