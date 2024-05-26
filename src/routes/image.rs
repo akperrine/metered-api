@@ -158,7 +158,7 @@ pub async fn delete_image_by_id(
     Ok((
         headers,
         Json(json!({
-            "message": "Image successfully loaded"
+            "message": "Image successfully deleted"
         })),
     ))
 }
