@@ -1,21 +1,16 @@
-use std::{
-    fmt::{self, Formatter},
-    io::Write,
-    path::Path as StdPath,
-    str::FromStr,
-};
+use std::str::FromStr;
 
 use axum::{
     body::Bytes,
     extract::{Multipart, Path},
-    http::{header, Error, StatusCode},
+    http::{header, StatusCode},
     response::{IntoResponse, Json},
     routing::{delete, get, post},
     Router,
 };
 
 use axum_macros::debug_handler;
-use futures_util::{stream::StreamExt, AsyncWriteExt};
+use futures_util::AsyncWriteExt;
 use futures_util::{AsyncReadExt, TryStreamExt};
 use image::ImageFormat;
 use mongodb::{
@@ -60,7 +55,7 @@ pub async fn post_image(
 
         if field.name().unwrap().eq("file") {
             let name = field.name().unwrap().to_string();
-            let fieldName = field.file_name().unwrap();
+            field.file_name().unwrap();
             if let Some(filename) = field.file_name().map(ToString::to_string) {
                 println!(
                     "found file field with name: {}, filename: {}",
@@ -121,7 +116,6 @@ pub async fn get_image_by_name(
         let id = res.id;
         return get_response_from_gridfs(&bucket, id).await;
     }
-
     Err((
         StatusCode::BAD_REQUEST,
         Json(serde_json::to_vec(&json!({ "message": "Image not found with this name" })).unwrap())
@@ -154,31 +148,23 @@ pub async fn get_response_from_gridfs(
     id: Bson,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
     let mut buffer: Vec<u8> = Vec::new();
-    let mut download_stream = bucket.open_download_stream(id).await;
+    let download_stream = bucket.open_download_stream(id).await;
     match download_stream {
         Ok(mut stream) => {
-            let result = stream.read_to_end(&mut buffer).await.unwrap();
+            stream.read_to_end(&mut buffer).await.unwrap();
 
             let cursor = std::io::Cursor::new(&mut buffer);
-            let img = image::io::Reader::with_format(cursor, ImageFormat::Png)
+            image::io::Reader::with_format(cursor, ImageFormat::Png)
                 .decode()
                 .map_err(|e| format!("Failed to decode PNG image: {:?}", e))
                 .unwrap();
-
             let bytes: Bytes = buffer.into();
-
             let headers = [(header::CONTENT_TYPE, "image/png")];
-
             Ok((headers, bytes))
         }
-        Err(err) => {
-            let headers = [(header::CONTENT_TYPE, "image/png")];
-
-            Err((
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::to_vec(&json!({ "message": "Image id not found" })).unwrap())
-                    .to_vec(),
-            ))
-        }
+        Err(_) => Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::to_vec(&json!({ "message": "Image id not found" })).unwrap()).to_vec(),
+        )),
     }
 }
