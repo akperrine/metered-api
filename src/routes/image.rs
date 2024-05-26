@@ -105,7 +105,8 @@ pub async fn get_image_by_id(
     println!("{}", id);
     let bucket = get_bucket().await.unwrap();
     let id = ObjectId::from_str(&id).expect("could not convert id to ObjectId");
-    get_response_from_gridfs(&bucket, id).await
+    let bson_id = Bson::ObjectId(id);
+    get_response_from_gridfs(&bucket, bson_id).await
     // let mut buffer: Vec<u8> = Vec::new();
     // let mut download_stream = bucket.open_download_stream(Bson::ObjectId(id)).await;
     // match download_stream {
@@ -156,22 +157,30 @@ pub async fn get_image_by_name(
     let bucket = get_bucket().await.unwrap();
     let find_query = doc! {"filename": image_name};
     let mut cursor = bucket.find(find_query, None).await.unwrap();
-    let mut buffer = Vec::new();
+    // let mut buffer = Vec::new();
     while let Some(res) = cursor.try_next().await.unwrap() {
         println!("File: {:?}", res);
-        let mut download_stream = bucket.open_download_stream(res.id).await.unwrap();
-        let result = download_stream.read_to_end(&mut buffer).await.unwrap();
+        let id = res.id;
+        return get_response_from_gridfs(&bucket, id).await;
+        //     let mut download_stream = bucket.open_download_stream(res.id).await.unwrap();
+        //     let result = download_stream.read_to_end(&mut buffer).await.unwrap();
 
-        let cursor = std::io::Cursor::new(&mut buffer);
-        let img = image::io::Reader::with_format(cursor, ImageFormat::Png)
-            .decode()
-            .map_err(|e| format!("Failed to decode PNG image: {:?}", e))
-            .unwrap();
+        //     let cursor = std::io::Cursor::new(&mut buffer);
+        //     let img = image::io::Reader::with_format(cursor, ImageFormat::Png)
+        //         .decode()
+        //         .map_err(|e| format!("Failed to decode PNG image: {:?}", e))
+        //         .unwrap();
     }
-    let bytes: Bytes = buffer.into();
-    let headers = [(header::CONTENT_TYPE, "image/png")];
-    println!("HIIIITDKLS");
-    Ok((headers, bytes))
+
+    Err((
+        StatusCode::BAD_REQUEST,
+        Json(serde_json::to_vec(&json!({ "message": "Image not found with this name" })).unwrap())
+            .to_vec(),
+    ))
+    // let bytes: Bytes = buffer.into();
+    // let headers = [(header::CONTENT_TYPE, "image/png")];
+    // println!("HIIIITDKLS");
+    // Ok((headers, bytes))
 }
 
 #[debug_handler]
@@ -196,10 +205,10 @@ pub async fn delete_image_by_id(
 // Common Service functions
 pub async fn get_response_from_gridfs(
     bucket: &GridFsBucket,
-    id: ObjectId,
+    id: Bson,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
     let mut buffer: Vec<u8> = Vec::new();
-    let mut download_stream = bucket.open_download_stream(Bson::ObjectId(id)).await;
+    let mut download_stream = bucket.open_download_stream(id).await;
     match download_stream {
         Ok(mut stream) => {
             let result = stream.read_to_end(&mut buffer).await.unwrap();
