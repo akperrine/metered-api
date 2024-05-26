@@ -97,7 +97,6 @@ pub async fn post_image(
 pub async fn get_image_by_id(
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
-    println!("{}", id);
     let bucket = get_bucket().await.unwrap();
     let id = ObjectId::from_str(&id).expect("could not convert id to ObjectId");
     let bson_id = Bson::ObjectId(id);
@@ -112,7 +111,6 @@ pub async fn get_image_by_name(
     let find_query = doc! {"filename": image_name};
     let mut cursor = bucket.find(find_query, None).await.unwrap();
     while let Some(res) = cursor.try_next().await.unwrap() {
-        println!("File: {:?}", res);
         let id = res.id;
         return get_response_from_gridfs(&bucket, id).await;
     }
@@ -127,12 +125,9 @@ pub async fn get_image_by_name(
 pub async fn delete_image_by_id(
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
-    println!("id: {}", id);
     let bucket = get_bucket().await.unwrap();
     let obj_id = ObjectId::from_str(&id).unwrap();
-    println!("object id: {}", &obj_id);
-    let result = bucket.delete(Bson::ObjectId(obj_id)).await.unwrap();
-    println!("result from delete, {:?}", result);
+    bucket.delete(Bson::ObjectId(obj_id)).await.unwrap();
     let headers = [(header::CONTENT_TYPE, "image/png")];
     Ok((
         headers,
