@@ -37,6 +37,7 @@ pub fn create_route() -> Router {
         .route("/images/name/:name", get(get_image_by_name))
         .route("/images", post(post_image))
         .route("/images/:id", delete(dummy_fn))
+        .route("/images/delete/:id", delete(delete_image_by_id))
 }
 
 pub async fn dummy_fn() {
@@ -140,5 +141,15 @@ pub async fn get_image_by_name(
     let bytes: Bytes = buffer.into();
     let headers = [(header::CONTENT_TYPE, "image/png")];
     println!("HIIIITDKLS");
+    Ok((headers, bytes))
+}
+
+#[debug_handler]
+pub async fn delete_image_by_id(
+    Path(id): Path<String>,
+) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
+    let buffer = Vec::new();
+    let bytes: Bytes = buffer.into();
+    let headers = [(header::CONTENT_TYPE, "image/png")];
     Ok((headers, bytes))
 }

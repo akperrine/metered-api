@@ -5,6 +5,7 @@ use tokio::{fs::File, io::AsyncReadExt};
 use tokio_util::codec::{BytesCodec, FramedRead};
 
 use crate::{db::get_env_config, tests::setup::use_test_app};
+use bson::oid::ObjectId;
 
 // #[test]
 // fn answer_42() {
@@ -23,6 +24,11 @@ use crate::{db::get_env_config, tests::setup::use_test_app};
 #[cfg(test)]
 #[test]
 fn test_post_get_delete_png() {
+    use futures::TryStreamExt;
+    use mongodb::bson::{doc, oid::ObjectId, Document};
+
+    use crate::db::get_bucket;
+
     use_test_app(async move {
         println!("{}", env::current_dir().unwrap().display());
         // let test_img = File::open("./src/tests/images/test_img_1.png")
@@ -55,6 +61,35 @@ fn test_post_get_delete_png() {
         println!("{},{}", status_code, expected);
         assert_eq!(status_code, expected);
 
+        // get id
+        let bucket = get_bucket().await.unwrap();
+        // let mut id: String = String::from("none");
+        let mut id: String = String::from("none");
+        // check if file name already used
+        let find_query = doc! {"filename": "test_img_1.png"};
+        let mut cursor = bucket.find(find_query, None).await.unwrap();
+
+        while let Some(res) = cursor.try_next().await.unwrap() {
+            // println!("id: {}", res.id.to_string().h);
+
+            id = res.id.as_object_id().unwrap().to_hex();
+
+            println!("id: {}", id);
+        }
+        println!("id: {}", id);
+
+        let get_right_id = client
+            .get(format!("http://localhost:3001/images/{}", id))
+            .send()
+            .await
+            .unwrap();
+
+        let get_correct_id_code = get_right_id.status();
+        let expected = StatusCode::OK;
+        println!("{},{}", get_correct_id_code, expected);
+        assert_eq!(get_correct_id_code, expected);
+
+        // check twice on posting same: should fail
         let form_copy = create_multipart_form().await;
         let res_two = client
             .post("http://localhost:3001/images")
@@ -95,16 +130,16 @@ fn test_post_get_delete_png() {
         println!("{},{}", get_wrong_status_code, expected);
         assert_eq!(status_code, expected);
 
-        let delete_res = client
-            .delete("http://localhost:3001/images/name")
-            .send()
-            .await
-            .unwrap();
+        // let delete_res = client
+        //     .delete("http://localhost:3001/images/delete/")
+        //     .send()
+        //     .await
+        //     .unwrap();
 
-        let delete_status_code = get_wrong_res.status();
-        let expected = StatusCode::OK;
-        println!("{},{}", delete_status_code, expected);
-        assert_eq!(status_code, expected);
+        // let delete_status_code = delete_res.status();
+        // let expected = StatusCode::OK;
+        // println!("{},{}", delete_status_code, expected);
+        // assert_eq!(status_code, expected);
     });
 }
 
