@@ -6,13 +6,7 @@ mod routes;
 
 #[cfg(test)]
 mod tests;
-
-use std::str::FromStr;
-
-use futures_util::AsyncReadExt;
-use mongodb::bson::{oid::ObjectId, Bson};
-
-use crate::db::{connection, get_bucket};
+use crate::db::connection;
 
 #[tokio::main]
 async fn main() {
