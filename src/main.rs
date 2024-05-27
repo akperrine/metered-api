@@ -10,7 +10,7 @@ use crate::db::connection;
 
 #[tokio::main]
 async fn main() {
-    // dev branch created to only integrate changes as they work
+    // switching to user-base making sure works
     connection().await;
 
     let app = app::create_app().await;
