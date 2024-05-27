@@ -1613,7 +1613,6 @@ dependencies = [
  "futures",
  "futures-util",
  "image",
- "lazy_static",
  "mongodb 2.8.2",
  "once_cell",
  "reqwest 0.12.4",

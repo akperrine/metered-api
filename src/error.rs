@@ -8,8 +8,8 @@ pub enum AppError {
     NotFound(#[from] NotFound),
     #[error("{0}")]
     BadRequest(#[from] BadRequest),
-    #[error("internal server error occured")]
-    Anyhow(anyhow::Error),
+    // #[error("internal server error occured")]
+    // Anyhow(anyhow::Error),
 }
 
 impl IntoResponse for AppError {
@@ -23,10 +23,10 @@ impl IntoResponse for AppError {
                 StatusCode::BAD_REQUEST,
                 format!("Bad request made: {}", err),
             ),
-            Self::Anyhow(err) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Something went wrong: {}", err),
-            ),
+            // Self::Anyhow(err) => (
+            //     StatusCode::INTERNAL_SERVER_ERROR,
+            //     format!("Something went wrong: {}", err),
+            // ),
         }
         .into_response()
     }
@@ -37,5 +37,5 @@ impl IntoResponse for AppError {
 pub struct BadRequest;
 
 #[derive(thiserror::Error, Debug)]
-#[error("Note found")]
+#[error("Not found")]
 pub struct NotFound;
