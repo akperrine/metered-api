@@ -1,4 +1,4 @@
-use std::{error::Error, str::FromStr};
+use std::str::FromStr;
 
 use axum::{
     body::Bytes,
@@ -8,7 +8,6 @@ use axum::{
     routing::{delete, get, post},
     Router,
 };
-
 use axum_macros::debug_handler;
 use futures_util::AsyncWriteExt;
 use futures_util::{AsyncReadExt, TryStreamExt};
@@ -21,20 +20,12 @@ use serde_json::json;
 
 use crate::db::get_bucket;
 
-//TODO: ERROR TODO logic
-//1.) Default body limit
-
 pub fn create_route() -> Router {
     Router::new()
         .route("/images/:id", get(get_image_by_id))
         .route("/images/name/:name", get(get_image_by_name))
         .route("/images", post(post_image))
-        .route("/images/:id", delete(dummy_fn))
         .route("/images/delete/:id", delete(delete_image_by_id))
-}
-
-pub async fn dummy_fn() {
-    println!("hello world");
 }
 
 #[debug_handler]
@@ -42,8 +33,7 @@ pub async fn post_image(
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
     while let Some(mut field) = multipart.next_field().await.unwrap() {
-        let res = field.name().unwrap() == "file";
-        println!("{}", res);
+        // let res = field.name().unwrap() == "file";
 
         if field.name().unwrap().eq("file") {
             let name = field.name().unwrap().to_string();
