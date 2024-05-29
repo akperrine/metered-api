@@ -1,3 +1,4 @@
+use bcrypt::bcrypt;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 use wither::bson::doc;
@@ -11,5 +12,18 @@ pub struct User {
     pub username: String,
     #[validate(email)]
     pub email: String,
-    pub password: Option<String>,
+    pub password: String,
+}
+
+impl User {
+    pub fn new(username: String, email: String, password: String) -> Self {
+        let cost = 10;
+        let hashed_password = bcrypt::hash(password, cost).unwrap();
+        Self {
+            id: None,
+            username,
+            email,
+            password: hashed_password,
+        }
+    }
 }

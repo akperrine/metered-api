@@ -1,4 +1,4 @@
-use axum::{http::Response, routing::get, Router};
+use axum::{routing::get, Router};
 
 pub fn create_route() -> Router {
     Router::new().route("/users/:id", get(dummy_fn))
