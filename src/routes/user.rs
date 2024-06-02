@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use anyhow::Ok;
 use axum::{
     body::Body,
@@ -5,6 +7,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use axum_macros::debug_handler;
 use bson::{doc, Document};
 use mongodb::Collection;
 use reqwest::StatusCode;
@@ -81,11 +84,6 @@ async fn get_user_by_email(Json(body): Json<LoginUserBody>) -> impl IntoResponse
             );
         }
     }
-
-    // (
-    //     StatusCode::BAD_REQUEST,
-    //     Json("incorrect credentials passed C."),
-    // )
     (
         StatusCode::BAD_REQUEST,
         "incorrect credentails passed Cs.".to_string(),

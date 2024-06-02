@@ -1,6 +1,7 @@
 mod app;
 mod db;
 mod error;
+mod middleware;
 mod models;
 mod routes;
 
