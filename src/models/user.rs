@@ -1,9 +1,9 @@
+use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 use wither::bson::doc;
-use wither::{bson::oid::ObjectId, Model};
 
-#[derive(Debug, Model, Serialize, Deserialize, Validate)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct User {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
@@ -24,8 +24,7 @@ pub struct PublicUser {
 
 impl User {
     pub fn new(username: String, email: String, password: String) -> Self {
-        let cost = 10;
-        let hashed_password = bcrypt::hash(password, cost).unwrap();
+        let hashed_password = user_password_hash(&password);
 
         Self {
             id: None,
@@ -34,4 +33,9 @@ impl User {
             password: hashed_password,
         }
     }
+}
+
+pub fn user_password_hash(unhashed: &String) -> String {
+    let cost = 10;
+    bcrypt::hash(unhashed, cost).unwrap()
 }
