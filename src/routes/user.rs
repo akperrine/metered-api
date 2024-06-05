@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     db::connection,
-    middleware::auth::AuthError,
+    middleware::auth::{create_auth_token, AuthError},
     models::user::{user_password_hash, PublicUser, User},
 };
 
@@ -68,13 +68,8 @@ async fn get_user_by_email(
 
     if let Some(user) = found {
         if bcrypt::verify(&body.password, &user.password).unwrap() {
-            // let response = AuthResponse {
-            //     access_token: String::from("token"),
-            //     user: response_body,
-            // };
-            return Ok(Json(AuthResponse::new("token", user)));
-
-            // );
+            let token = create_auth_token().await;
+            return Ok(Json(AuthResponse::new(&token, user)));
         }
     }
     Err(AuthError::WrongCredentials)
