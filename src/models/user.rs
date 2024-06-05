@@ -1,7 +1,14 @@
+use axum::{async_trait, extract::FromRequestParts, http::request::Parts, RequestPartsExt};
+use axum_extra::{
+    headers::{authorization::Bearer, Authorization},
+    TypedHeader,
+};
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 use wither::bson::doc;
+
+use crate::middleware::auth::{validate_auth_token, AuthError};
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct User {
@@ -28,6 +35,31 @@ impl From<User> for PublicUser {
             username: user.username.clone(),
             email: user.email.clone(),
         }
+    }
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for PublicUser
+where
+    S: Send + Sync,
+{
+    type Rejection = AuthError;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let TypedHeader(Authorization(bearer)) = parts
+            .extract::<TypedHeader<Authorization<Bearer>>>()
+            .await
+            .map_err(|_| AuthError::InvalidToken)?;
+
+        let token_data = validate_auth_token(bearer.token());
+
+        let user = PublicUser {
+            id: ObjectId::new(),
+            email: String::from("e@.com"),
+            username: String::from("hi"),
+        };
+        println!("{:?}", token_data.claims);
+        Ok(user)
     }
 }
 

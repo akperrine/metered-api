@@ -3,7 +3,7 @@
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{response::Response, Json};
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -46,15 +46,14 @@ pub async fn create_auth_token() -> String {
     token
 }
 
-pub fn validate_auth_token(token: String) {
-    let res = jsonwebtoken::decode::<Claims>(
+pub fn validate_auth_token(token: &str) -> TokenData<Claims> {
+    println!("{:?}", &token);
+    jsonwebtoken::decode::<Claims>(
         &token,
-        &DecodingKey::from_secret("SECRET.as_ref()".as_bytes()),
+        &DecodingKey::from_secret(&SECRET.as_bytes()),
         &Validation::default(),
     )
-    .unwrap();
-
-    println!("{:?}", res);
+    .unwrap()
 }
 
 #[derive(Debug)]

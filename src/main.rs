@@ -7,16 +7,11 @@ mod routes;
 
 #[cfg(test)]
 mod tests;
-use middleware::auth::{create_auth_token, validate_auth_token};
 
 use crate::db::connection;
 
 #[tokio::main]
 async fn main() {
-    let token = create_auth_token();
-    // validate_auth_token(token);
-
-    // switching to user-base making sure works
     connection().await;
 
     let app = app::create_app().await;
