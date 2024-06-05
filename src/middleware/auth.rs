@@ -1,7 +1,13 @@
 // Require Claims
 
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::{response::Response, Json};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+
+const SECRET: &str = "secret";
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Claims {
@@ -19,16 +25,14 @@ impl Claims {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct AuthToken {
+pub struct AuthBody {
     header: Header,
     payload: Claims,
     // don't feel good about sig type
     signature: String,
 }
 
-const SECRET: &str = "secret";
-
-pub fn create_auth_token() -> String {
+pub async fn create_auth_token() -> String {
     let claims = Claims::new();
 
     let token = jsonwebtoken::encode(
@@ -53,8 +57,27 @@ pub fn validate_auth_token(token: String) {
     println!("{:?}", res);
 }
 
-// impl Claims {
-//     pub fn new() -> Self {
-//         Self {}
-//     }
-// }
+#[derive(Debug)]
+pub enum AuthError {
+    WrongCredentials,
+    MissingCredintials,
+    InvalidToken,
+    InvalidTokenCreation,
+}
+
+impl IntoResponse for AuthError {
+    fn into_response(self) -> Response {
+        let (status, message) = match self {
+            AuthError::WrongCredentials => (StatusCode::UNAUTHORIZED, "Wrong Credntials"),
+            AuthError::MissingCredintials => (StatusCode::BAD_REQUEST, "Missing Credentials"),
+            AuthError::InvalidTokenCreation => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Error Creating Token")
+            }
+            AuthError::InvalidToken => (StatusCode::BAD_REQUEST, "Invalid Token"),
+        };
+        let body = Json(json!({
+            "error": message
+        }));
+        (status, body).into_response()
+    }
+}

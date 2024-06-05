@@ -15,11 +15,20 @@ pub struct User {
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct PublicUser {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
+    pub id: ObjectId,
     pub username: String,
     #[validate(email)]
     pub email: String,
+}
+
+impl From<User> for PublicUser {
+    fn from(user: User) -> Self {
+        Self {
+            id: user.id.unwrap(),
+            username: user.username.clone(),
+            email: user.email.clone(),
+        }
+    }
 }
 
 impl User {

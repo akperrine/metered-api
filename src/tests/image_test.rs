@@ -1,4 +1,4 @@
-use anyhow::Ok;
+// use anyhow::Ok;
 use futures::TryStreamExt;
 use reqwest::{multipart::Form, Body, Client, Response, StatusCode};
 use tokio::fs::File;
@@ -112,7 +112,7 @@ fn check_status(res: &Response, expected_status: StatusCode) {
     );
 }
 
-async fn get_image_id() -> Result<String, anyhow::Error> {
+async fn get_image_id() -> Result<String, std::fmt::Error> {
     let bucket = get_bucket().await.unwrap();
     // placeholder String: test fails anyways if not replaced
     let mut id: String = String::from("none");
