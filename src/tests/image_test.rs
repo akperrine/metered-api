@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use axum::body;
 // use anyhow::Ok;
 use futures::TryStreamExt;
@@ -7,7 +9,8 @@ use tokio_util::codec::{BytesCodec, FramedRead};
 
 use crate::{
     db::get_bucket,
-    routes::user::{CreateUserBody, LoginUserBody},
+    middleware::auth::AuthBody,
+    routes::user::{AuthResponse, CreateUserBody, LoginUserBody},
     tests::setup::use_test_app,
 };
 use bson::doc;
@@ -53,8 +56,12 @@ fn test_post_get_delete_png() {
             .json(&login_body)
             .send()
             .await
-            .unwrap();
-        check_status(&login_res, StatusCode::OK);
+            .expect("failed to get response")
+            .json::<AuthResponse>()
+            .await
+            .expect("failed to get payload");
+        // check_status(&login_res, StatusCode::OK);
+        println!("{:?}", login_res);
 
         // TODO: need to get bearer tokens here
         println!("Posting image: should pass: 200 OK");
@@ -64,7 +71,7 @@ fn test_post_get_delete_png() {
             .multipart(form)
             .send()
             .await
-            .unwrap();
+            .expect("failed to get response");
         check_status(&post_first_res, StatusCode::OK);
 
         // retrieve id from just posted image
