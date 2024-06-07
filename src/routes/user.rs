@@ -84,8 +84,8 @@ pub struct LoginUserBody {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AuthResponse {
-    access_token: String,
-    user: PublicUser,
+    pub access_token: String,
+    pub user: PublicUser,
 }
 
 impl AuthResponse {

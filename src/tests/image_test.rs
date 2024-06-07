@@ -17,7 +17,7 @@ use bson::doc;
 
 // to log test: `cargo test -- --nocapture`
 #[test]
-fn test_post_get_delete_png() {
+fn test_e2e_image_png() {
     use_test_app(async move {
         println!("\nInit end to end Test for images:\n");
         let client = Client::new();
@@ -56,12 +56,15 @@ fn test_post_get_delete_png() {
             .json(&login_body)
             .send()
             .await
-            .expect("failed to get response")
+            .expect("failed to get response");
+        check_status(&login_res, StatusCode::OK);
+
+        let payload = login_res
             .json::<AuthResponse>()
             .await
             .expect("failed to get payload");
-        // check_status(&login_res, StatusCode::OK);
-        println!("{:?}", login_res);
+        // println!("{:?}", login_res);
+        let auth_token = payload.access_token;
 
         // TODO: need to get bearer tokens here
         println!("Posting image: should pass: 200 OK");
@@ -69,6 +72,7 @@ fn test_post_get_delete_png() {
         let post_first_res = client
             .post("http://localhost:3001/images")
             .multipart(form)
+            .bearer_auth(&auth_token)
             .send()
             .await
             .expect("failed to get response");
@@ -80,6 +84,7 @@ fn test_post_get_delete_png() {
         println!("Getting image by id: should return: 200 Ok");
         let get_exists_res = client
             .get(format!("http://localhost:3001/images/{}", &id))
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
@@ -90,6 +95,7 @@ fn test_post_get_delete_png() {
         let post_repeat_res = client
             .post("http://localhost:3001/images")
             .multipart(form_copy)
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
@@ -103,6 +109,7 @@ fn test_post_get_delete_png() {
         println!("Getting image by name: should return: 200 Ok");
         let get_right_res = client
             .get("http://localhost:3001/images/name/test_img_1.png")
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
@@ -111,6 +118,7 @@ fn test_post_get_delete_png() {
         println!("Getting image by WRONG name: should return: 400 Bad Request");
         let get_wrong_res = client
             .get("http://localhost:3001/images/name/wrong_name.png")
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
@@ -119,6 +127,7 @@ fn test_post_get_delete_png() {
         println!("Delete image should return: 200 Ok");
         let delete_res = client
             .delete(format!("http://localhost:3001/images/delete/{}", &id))
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
@@ -127,6 +136,7 @@ fn test_post_get_delete_png() {
         println!("Getting image by right name After Delete: should return: 400 Bad Request");
         let get_right_id_after_delete = client
             .get(format!("http://localhost:3001/images/{}", &id))
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
