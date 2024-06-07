@@ -1,15 +1,9 @@
-use std::fmt::Display;
-
-// use anyhow::Ok;
 use axum::{
-    body::Body,
-    http::Response,
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
-use axum_macros::debug_handler;
-use bson::{doc, Document};
+use bson::doc;
 use mongodb::Collection;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -17,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     db::connection,
     middleware::auth::{create_auth_token, AuthError},
-    models::user::{user_password_hash, PublicUser, User},
+    models::user::{PublicUser, User},
 };
 
 pub fn create_route() -> Router {

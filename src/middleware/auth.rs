@@ -46,14 +46,15 @@ pub async fn create_auth_token() -> String {
     token
 }
 
-pub fn validate_auth_token(token: &str) -> TokenData<Claims> {
+pub fn validate_auth_token(token: &str) -> Result<TokenData<Claims>, jsonwebtoken::errors::Error> {
     println!("{:?}", &token);
-    jsonwebtoken::decode::<Claims>(
+    let token_data = jsonwebtoken::decode::<Claims>(
         &token,
         &DecodingKey::from_secret(&SECRET.as_bytes()),
         &Validation::default(),
-    )
-    .unwrap()
+    )?;
+
+    Ok(token_data)
 }
 
 #[derive(Debug)]
@@ -61,7 +62,6 @@ pub enum AuthError {
     WrongCredentials,
     MissingCredintials,
     InvalidToken,
-    InvalidTokenCreation,
 }
 
 impl IntoResponse for AuthError {
@@ -69,9 +69,6 @@ impl IntoResponse for AuthError {
         let (status, message) = match self {
             AuthError::WrongCredentials => (StatusCode::UNAUTHORIZED, "Wrong Credntials"),
             AuthError::MissingCredintials => (StatusCode::BAD_REQUEST, "Missing Credentials"),
-            AuthError::InvalidTokenCreation => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Error Creating Token")
-            }
             AuthError::InvalidToken => (StatusCode::BAD_REQUEST, "Invalid Token"),
         };
         let body = Json(json!({

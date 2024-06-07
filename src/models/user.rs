@@ -51,7 +51,8 @@ where
             .await
             .map_err(|_| AuthError::InvalidToken)?;
 
-        let token_data = validate_auth_token(bearer.token());
+        let token_data =
+            validate_auth_token(bearer.token()).map_err(|_| AuthError::InvalidToken)?;
 
         let user = PublicUser {
             id: ObjectId::new(),

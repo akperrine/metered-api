@@ -1,5 +1,5 @@
 [package]
-name = "metered-api"
+name = "sheet-music-pay-per-view"
 version = "0.1.0"
 edition = "2021"
 
