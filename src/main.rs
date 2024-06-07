@@ -1,16 +1,17 @@
 mod app;
 mod db;
 mod error;
+mod middleware;
 mod models;
 mod routes;
 
 #[cfg(test)]
 mod tests;
+
 use crate::db::connection;
 
 #[tokio::main]
 async fn main() {
-    // switching to user-base making sure works
     connection().await;
 
     let app = app::create_app().await;

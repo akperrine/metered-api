@@ -18,7 +18,7 @@ use mongodb::{
 };
 use serde_json::json;
 
-use crate::db::get_bucket;
+use crate::{db::get_bucket, models::user::PublicUser};
 
 pub fn create_route() -> Router {
     Router::new()
@@ -30,6 +30,7 @@ pub fn create_route() -> Router {
 
 #[debug_handler]
 pub async fn post_image(
+    _user: PublicUser,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
     while let Some(mut field) = multipart.next_field().await.unwrap() {
@@ -79,6 +80,7 @@ pub async fn post_image(
 
 #[debug_handler]
 pub async fn get_image_by_id(
+    _user: PublicUser,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
     let bucket = get_bucket().await.unwrap();
@@ -89,6 +91,7 @@ pub async fn get_image_by_id(
 
 #[debug_handler]
 pub async fn get_image_by_name(
+    _user: PublicUser,
     Path(image_name): Path<String>,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
     let bucket = get_bucket().await.unwrap();
@@ -106,6 +109,7 @@ pub async fn get_image_by_name(
 
 #[debug_handler]
 pub async fn delete_image_by_id(
+    _user: PublicUser,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
     let bucket = get_bucket().await.unwrap();
