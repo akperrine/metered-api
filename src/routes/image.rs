@@ -30,7 +30,6 @@ pub fn create_route() -> Router {
 
 #[debug_handler]
 pub async fn post_image(
-    _user: PublicUser,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
     while let Some(mut field) = multipart.next_field().await.unwrap() {
