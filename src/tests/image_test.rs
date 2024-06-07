@@ -1,10 +1,15 @@
+use axum::body;
 // use anyhow::Ok;
 use futures::TryStreamExt;
 use reqwest::{multipart::Form, Body, Client, Response, StatusCode};
 use tokio::fs::File;
 use tokio_util::codec::{BytesCodec, FramedRead};
 
-use crate::{db::get_bucket, tests::setup::use_test_app};
+use crate::{
+    db::get_bucket,
+    routes::user::{CreateUserBody, LoginUserBody},
+    tests::setup::use_test_app,
+};
 use bson::doc;
 
 // to log test: `cargo test -- --nocapture`
@@ -14,8 +19,44 @@ fn test_post_get_delete_png() {
         println!("\nInit end to end Test for images:\n");
         let client = Client::new();
 
-        println!("attempt login before create: 401 Unauthorized");
+        let login_body = LoginUserBody {
+            email: String::from("user@gmail.com"),
+            password: String::from("123123"),
+        };
+        let create_user_body = CreateUserBody {
+            username: String::from("user"),
+            email: String::from("user@gmail.com"),
+            password: String::from("123123"),
+        };
 
+        println!("login before create: should fail 401 Unauthorized");
+        let failed_login_res = client
+            .get("http://localhost:3001/users/login")
+            .json(&login_body)
+            .send()
+            .await
+            .unwrap();
+        check_status(&failed_login_res, StatusCode::UNAUTHORIZED);
+
+        println!("create user: should pass 201 Created");
+        let create_user_res = client
+            .post("http://localhost:3001/users/create")
+            .json(&create_user_body)
+            .send()
+            .await
+            .unwrap();
+        check_status(&create_user_res, StatusCode::CREATED);
+
+        println!("login: should pass 200 OK");
+        let login_res = client
+            .get("http://localhost:3001/users/login")
+            .json(&login_body)
+            .send()
+            .await
+            .unwrap();
+        check_status(&login_res, StatusCode::OK);
+
+        // TODO: need to get bearer tokens here
         println!("Posting image: should pass: 200 OK");
         let form = create_multipart_form().await;
         let post_first_res = client

@@ -44,7 +44,7 @@ pub async fn create_user(Json(body): Json<CreateUserBody>) -> impl IntoResponse 
     let inserted = collection.insert_one(&user, None).await.unwrap();
     println!("inserted: {:?}", inserted);
 
-    (StatusCode::OK, Json("user successfully loaded"))
+    (StatusCode::CREATED, Json("user successfully loaded"))
 }
 
 async fn get_user_by_email(
@@ -69,17 +69,17 @@ async fn get_user_by_email(
     Err(AuthError::WrongCredentials)
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateUserBody {
-    username: String,
-    email: String,
-    password: String,
+    pub username: String,
+    pub email: String,
+    pub password: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LoginUserBody {
-    email: String,
-    password: String,
+    pub(crate) email: String,
+    pub password: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
