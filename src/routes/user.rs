@@ -39,12 +39,12 @@ pub async fn create_user(Json(body): Json<CreateUserBody>) -> impl IntoResponse 
     println!("found: {:?}", found);
 
     if let Some(_) = found {
-        return (StatusCode::BAD_REQUEST, Json("username already exists"));
+        return (StatusCode::BAD_REQUEST, Json("invalid user or password"));
     }
     let inserted = collection.insert_one(&user, None).await.unwrap();
     println!("inserted: {:?}", inserted);
 
-    (StatusCode::BAD_REQUEST, Json("user successfully loaded"))
+    (StatusCode::OK, Json("user successfully loaded"))
 }
 
 async fn get_user_by_email(

@@ -14,6 +14,8 @@ fn test_post_get_delete_png() {
         println!("\nInit end to end Test for images:\n");
         let client = Client::new();
 
+        println!("attempt login before create: 401 Unauthorized");
+
         println!("Posting image: should pass: 200 OK");
         let form = create_multipart_form().await;
         let post_first_res = client
