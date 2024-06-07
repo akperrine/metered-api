@@ -1,11 +1,13 @@
 mod app;
 mod db;
 mod error;
+mod middleware;
 mod models;
 mod routes;
 
 #[cfg(test)]
 mod tests;
+
 use crate::db::connection;
 
 #[tokio::main]

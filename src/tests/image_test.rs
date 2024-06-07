@@ -1,27 +1,81 @@
-use anyhow::Ok;
+use std::collections::HashMap;
+
+use axum::body;
+// use anyhow::Ok;
 use futures::TryStreamExt;
 use reqwest::{multipart::Form, Body, Client, Response, StatusCode};
 use tokio::fs::File;
 use tokio_util::codec::{BytesCodec, FramedRead};
 
-use crate::{db::get_bucket, tests::setup::use_test_app};
+use crate::{
+    db::get_bucket,
+    middleware::auth::AuthBody,
+    routes::user::{AuthResponse, CreateUserBody, LoginUserBody},
+    tests::setup::use_test_app,
+};
 use bson::doc;
 
 // to log test: `cargo test -- --nocapture`
 #[test]
-fn test_post_get_delete_png() {
+fn test_e2e_image_png() {
     use_test_app(async move {
         println!("\nInit end to end Test for images:\n");
         let client = Client::new();
 
+        let login_body = LoginUserBody {
+            email: String::from("user@gmail.com"),
+            password: String::from("123123"),
+        };
+        let create_user_body = CreateUserBody {
+            username: String::from("user"),
+            email: String::from("user@gmail.com"),
+            password: String::from("123123"),
+        };
+
+        println!("login before create: should fail 401 Unauthorized");
+        let failed_login_res = client
+            .get("http://localhost:3001/users/login")
+            .json(&login_body)
+            .send()
+            .await
+            .unwrap();
+        check_status(&failed_login_res, StatusCode::UNAUTHORIZED);
+
+        println!("create user: should pass 201 Created");
+        let create_user_res = client
+            .post("http://localhost:3001/users/create")
+            .json(&create_user_body)
+            .send()
+            .await
+            .unwrap();
+        check_status(&create_user_res, StatusCode::CREATED);
+
+        println!("login: should pass 200 OK");
+        let login_res = client
+            .get("http://localhost:3001/users/login")
+            .json(&login_body)
+            .send()
+            .await
+            .expect("failed to get response");
+        check_status(&login_res, StatusCode::OK);
+
+        let payload = login_res
+            .json::<AuthResponse>()
+            .await
+            .expect("failed to get payload");
+        // println!("{:?}", login_res);
+        let auth_token = payload.access_token;
+
+        // TODO: need to get bearer tokens here
         println!("Posting image: should pass: 200 OK");
         let form = create_multipart_form().await;
         let post_first_res = client
             .post("http://localhost:3001/images")
             .multipart(form)
+            .bearer_auth(&auth_token)
             .send()
             .await
-            .unwrap();
+            .expect("failed to get response");
         check_status(&post_first_res, StatusCode::OK);
 
         // retrieve id from just posted image
@@ -30,6 +84,7 @@ fn test_post_get_delete_png() {
         println!("Getting image by id: should return: 200 Ok");
         let get_exists_res = client
             .get(format!("http://localhost:3001/images/{}", &id))
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
@@ -40,6 +95,7 @@ fn test_post_get_delete_png() {
         let post_repeat_res = client
             .post("http://localhost:3001/images")
             .multipart(form_copy)
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
@@ -53,6 +109,7 @@ fn test_post_get_delete_png() {
         println!("Getting image by name: should return: 200 Ok");
         let get_right_res = client
             .get("http://localhost:3001/images/name/test_img_1.png")
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
@@ -61,6 +118,7 @@ fn test_post_get_delete_png() {
         println!("Getting image by WRONG name: should return: 400 Bad Request");
         let get_wrong_res = client
             .get("http://localhost:3001/images/name/wrong_name.png")
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
@@ -69,6 +127,7 @@ fn test_post_get_delete_png() {
         println!("Delete image should return: 200 Ok");
         let delete_res = client
             .delete(format!("http://localhost:3001/images/delete/{}", &id))
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
@@ -77,6 +136,7 @@ fn test_post_get_delete_png() {
         println!("Getting image by right name After Delete: should return: 400 Bad Request");
         let get_right_id_after_delete = client
             .get(format!("http://localhost:3001/images/{}", &id))
+            .bearer_auth(&auth_token)
             .send()
             .await
             .unwrap();
@@ -112,7 +172,7 @@ fn check_status(res: &Response, expected_status: StatusCode) {
     );
 }
 
-async fn get_image_id() -> Result<String, anyhow::Error> {
+async fn get_image_id() -> Result<String, std::fmt::Error> {
     let bucket = get_bucket().await.unwrap();
     // placeholder String: test fails anyways if not replaced
     let mut id: String = String::from("none");
