@@ -45,7 +45,7 @@ pub async fn post_image(
                 );
                 let bucket = get_bucket().await.unwrap();
                 // check if file name already used
-                let find_query = doc! {"filename": doc! {"$exists": &filename}};
+                let find_query = doc! {"filename": &filename};
                 let mut cursor = bucket.find(find_query, None).await.unwrap();
 
                 while let Some(_) = cursor.try_next().await.unwrap() {
