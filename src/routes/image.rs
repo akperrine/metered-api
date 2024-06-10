@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::{env, time::Duration};
 
 use axum::{
     body::Bytes,
@@ -12,12 +13,16 @@ use axum_macros::debug_handler;
 use futures_util::AsyncWriteExt;
 use futures_util::{AsyncReadExt, TryStreamExt};
 use image::ImageFormat;
+use mongodb::Collection;
 use mongodb::{
     bson::{doc, oid::ObjectId, Bson},
+    options::{GridFsBucketOptions, WriteConcern},
     GridFsBucket,
 };
 use serde_json::json;
 
+use crate::db::connection;
+use crate::models::user::User;
 use crate::{db::get_bucket, models::user::PublicUser};
 
 pub fn create_route() -> Router {
@@ -30,6 +35,7 @@ pub fn create_route() -> Router {
             post(update_user_profile_pic),
         )
         .route("/images/delete/:id", delete(delete_image_by_id))
+        .route("/images/removeProfilePic", delete(delete_user_profile_pic))
 }
 
 #[debug_handler]
@@ -132,12 +138,21 @@ async fn update_user_profile_pic(
     Path(id): Path<String>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
-    let bucket = get_bucket().await.unwrap();
+    let connection = connection().await;
+    let write_concern = WriteConcern::builder()
+        .w_timeout(Duration::new(5, 0))
+        .build();
+    let options = GridFsBucketOptions::builder()
+        .bucket_name("image_bucket".to_string())
+        .write_concern(write_concern)
+        .build();
+    let bucket = connection.gridfs_bucket(options);
     let obj_id = ObjectId::from_str(&id).unwrap();
+    // disgard the error of the
     bucket.delete(Bson::ObjectId(obj_id)).await.ok();
     // If does update, else insert
     while let Some(mut field) = multipart.next_field().await.unwrap() {
-        // let res = field.name().unwrap() == "file";
+        let res = field.name().unwrap() == "file";
 
         if field.name().unwrap().eq("file") {
             let name = field.name().unwrap().to_string();
@@ -158,6 +173,24 @@ async fn update_user_profile_pic(
                 upload_stream.write_all(&data).await.unwrap();
                 upload_stream.close().await.unwrap();
             }
+            let updated_name = String::from(&id.to_string());
+            let collection: Collection<User> = connection.collection("users");
+            let bson = Bson::ObjectId(ObjectId::from_str(&id).unwrap());
+            let mut res = collection.find(doc! {"_id": &bson}, None).await.unwrap();
+            while let Some(item) = res.try_next().await.unwrap() {
+                println!("{:?}, alkfj, {:?}", item, &updated_name);
+            }
+            println!("sdflKJ {:?}", &bson);
+            let update = collection
+                .update_one(
+                    doc! {"_id": &bson},
+                    doc! {"$set": {"profile_pic_url": updated_name + ".png"}},
+                    None,
+                )
+                .await
+                .unwrap();
+
+            println!("{:?}", update);
         } else {
             return Err(error_fmt(
                 StatusCode::BAD_REQUEST,
@@ -173,9 +206,23 @@ async fn update_user_profile_pic(
 }
 
 async fn delete_user_profile_pic(user: PublicUser) {
-    let bucket = get_bucket().await.unwrap();
-    // delete profile pic
-    // set user_profile_pic to be the default_pic value
+    let connection = connection().await;
+    let write_concern = WriteConcern::builder()
+        .w_timeout(Duration::new(5, 0))
+        .build();
+    let options = GridFsBucketOptions::builder()
+        .bucket_name("image_bucket".to_string())
+        .write_concern(write_concern)
+        .build();
+    let bucket = connection.gridfs_bucket(options);
+    bucket.delete(Bson::ObjectId(user.id)).await.ok();
+
+    let collection: Collection<User> = connection.collection("users");
+    let _ = collection.update_one(
+        doc! {"_id:": &user.id},
+        doc! {"profile_pic_url": "default_profile.png"},
+        None,
+    );
 }
 
 // Common Service functions
