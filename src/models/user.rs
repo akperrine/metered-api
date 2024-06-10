@@ -18,6 +18,7 @@ pub struct User {
     #[validate(email)]
     pub email: String,
     pub password: String,
+    pub profile_pic_url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
@@ -26,6 +27,7 @@ pub struct PublicUser {
     pub username: String,
     #[validate(email)]
     pub email: String,
+    pub profile_pic_url: String,
 }
 
 impl From<User> for PublicUser {
@@ -34,6 +36,7 @@ impl From<User> for PublicUser {
             id: user.id.unwrap(),
             username: user.username.clone(),
             email: user.email.clone(),
+            profile_pic_url: user.profile_pic_url.clone(),
         }
     }
 }
@@ -51,15 +54,15 @@ where
             .await
             .map_err(|_| AuthError::InvalidToken)?;
 
-        let token_data =
-            validate_auth_token(bearer.token()).map_err(|_| AuthError::InvalidToken)?;
+        validate_auth_token(bearer.token()).map_err(|_| AuthError::InvalidToken)?;
 
+        // dummy user data to suffice the return statement of From request Parts
         let user = PublicUser {
             id: ObjectId::new(),
-            email: String::from("e@.com"),
-            username: String::from("hi"),
+            email: String::from("a@b.com"),
+            username: String::from("dummy_user"),
+            profile_pic_url: String::from("image_name"),
         };
-        println!("{:?}", token_data.claims);
         Ok(user)
     }
 }
@@ -73,6 +76,7 @@ impl User {
             username,
             email,
             password: hashed_password,
+            profile_pic_url: String::from("default_profile.png"),
         }
     }
 }

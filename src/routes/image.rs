@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use axum::{
     body::Bytes,
-    extract::{Multipart, Path},
+    extract::{multipart, Multipart, Path},
     http::{header, StatusCode},
     response::{IntoResponse, Json},
     routing::{delete, get, post},
@@ -25,6 +25,10 @@ pub fn create_route() -> Router {
         .route("/images/:id", get(get_image_by_id))
         .route("/images/name/:name", get(get_image_by_name))
         .route("/images", post(post_image))
+        .route(
+            "/images/updateProfilePic/:id",
+            post(update_user_profile_pic),
+        )
         .route("/images/delete/:id", delete(delete_image_by_id))
 }
 
@@ -121,6 +125,57 @@ pub async fn delete_image_by_id(
             "message": "Image successfully deleted"
         })),
     ))
+}
+
+#[debug_handler]
+async fn update_user_profile_pic(
+    Path(id): Path<String>,
+    mut multipart: Multipart,
+) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
+    let bucket = get_bucket().await.unwrap();
+    let obj_id = ObjectId::from_str(&id).unwrap();
+    bucket.delete(Bson::ObjectId(obj_id)).await.ok();
+    // If does update, else insert
+    while let Some(mut field) = multipart.next_field().await.unwrap() {
+        // let res = field.name().unwrap() == "file";
+
+        if field.name().unwrap().eq("file") {
+            let name = field.name().unwrap().to_string();
+            field.file_name().unwrap();
+            if let Some(mut filename) = field.file_name().map(ToString::to_string) {
+                filename = String::from(&id);
+                println!(
+                    "found file field with name: {}, filename: {} to",
+                    name, filename
+                );
+                // check if file name already used
+                let mut data: Vec<u8> = Vec::new();
+                while let Some(chunk) = field.chunk().await.unwrap() {
+                    data.extend_from_slice(&chunk);
+                }
+
+                let mut upload_stream = bucket.open_upload_stream(&filename, None);
+                upload_stream.write_all(&data).await.unwrap();
+                upload_stream.close().await.unwrap();
+            }
+        } else {
+            return Err(error_fmt(
+                StatusCode::BAD_REQUEST,
+                "multipart form data requires field name: file with key as the loaded file",
+            ));
+        }
+    }
+
+    let success_response = Json(json!({
+        "message": "Image successfully loaded"
+    }));
+    Ok((StatusCode::OK, success_response))
+}
+
+async fn delete_user_profile_pic(user: PublicUser) {
+    let bucket = get_bucket().await.unwrap();
+    // delete profile pic
+    // set user_profile_pic to be the default_pic value
 }
 
 // Common Service functions

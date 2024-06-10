@@ -1,7 +1,3 @@
-use std::collections::HashMap;
-
-use axum::body;
-// use anyhow::Ok;
 use futures::TryStreamExt;
 use reqwest::{multipart::Form, Body, Client, Response, StatusCode};
 use tokio::fs::File;
@@ -9,7 +5,6 @@ use tokio_util::codec::{BytesCodec, FramedRead};
 
 use crate::{
     db::get_bucket,
-    middleware::auth::AuthBody,
     routes::user::{AuthResponse, CreateUserBody, LoginUserBody},
     tests::setup::use_test_app,
 };
