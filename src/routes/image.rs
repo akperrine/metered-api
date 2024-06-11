@@ -236,12 +236,13 @@ async fn delete_user_profile_pic(Json(user): Json<DtoUser>) {
         //TODO: see if delete and then update user profile
     }
 
-    // let collection: Collection<User> = connection.collection("users");
-    // let _ = collection.update_one(
-    //     doc! {"_id": &user.id},
-    //     doc! {"profile_pic_url": "default_profile.png"},
-    //     None,
-    // );
+    let collection: Collection<User> = connection.collection("users");
+    let updated2 = collection.update_one(
+        doc! {"_id": &user.id},
+        doc! {"$set": {"profile_pic_url": "default_profile.png"}},
+        None,
+    );
+    println!("updated2 {:?}", updated2.await.unwrap());
 }
 
 // Common Service functions
