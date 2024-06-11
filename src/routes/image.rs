@@ -1,3 +1,4 @@
+use std::fs;
 use std::str::FromStr;
 use std::{env, time::Duration};
 
@@ -10,6 +11,7 @@ use axum::{
     Router,
 };
 use axum_macros::debug_handler;
+use bson::Document;
 use futures_util::AsyncWriteExt;
 use futures_util::{AsyncReadExt, TryStreamExt};
 use image::ImageFormat;
@@ -22,7 +24,7 @@ use mongodb::{
 use serde_json::json;
 
 use crate::db::connection;
-use crate::models::user::User;
+use crate::models::user::{DtoUser, User};
 use crate::{db::get_bucket, models::user::PublicUser};
 
 pub fn create_route() -> Router {
@@ -184,7 +186,7 @@ async fn update_user_profile_pic(
             let update = collection
                 .update_one(
                     doc! {"_id": &bson},
-                    doc! {"$set": {"profile_pic_url": updated_name + ".png"}},
+                    doc! {"$set": {"profile_pic_url": updated_name}},
                     None,
                 )
                 .await
@@ -205,7 +207,8 @@ async fn update_user_profile_pic(
     Ok((StatusCode::OK, success_response))
 }
 
-async fn delete_user_profile_pic(user: PublicUser) {
+#[debug_handler]
+async fn delete_user_profile_pic(Json(user): Json<DtoUser>) {
     let connection = connection().await;
     let write_concern = WriteConcern::builder()
         .w_timeout(Duration::new(5, 0))
@@ -215,14 +218,30 @@ async fn delete_user_profile_pic(user: PublicUser) {
         .write_concern(write_concern)
         .build();
     let bucket = connection.gridfs_bucket(options);
-    bucket.delete(Bson::ObjectId(user.id)).await.ok();
+    // let fs_connection: Collection<Document> = connection.collection("fs");
+    // let mut cursor = fs_connection
+    //     .find(doc! {"filename": &user.profile_pic_url}, None)
+    //     .await
+    //     .unwrap();
+    println!("HIDID {:?}", user.profile_pic_url);
 
-    let collection: Collection<User> = connection.collection("users");
-    let _ = collection.update_one(
-        doc! {"_id:": &user.id},
-        doc! {"profile_pic_url": "default_profile.png"},
-        None,
-    );
+    let mut cursor = bucket
+        .find(doc! {"filename": user.profile_pic_url}, None)
+        .await
+        .unwrap();
+    while let Some(item) = cursor.try_next().await.unwrap() {
+        println!("{:?}", item);
+        let id = item.id;
+        bucket.delete(id).await.unwrap();
+        //TODO: see if delete and then update user profile
+    }
+
+    // let collection: Collection<User> = connection.collection("users");
+    // let _ = collection.update_one(
+    //     doc! {"_id": &user.id},
+    //     doc! {"profile_pic_url": "default_profile.png"},
+    //     None,
+    // );
 }
 
 // Common Service functions

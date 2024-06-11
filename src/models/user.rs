@@ -81,6 +81,14 @@ impl User {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DtoUser {
+    pub id: ObjectId,
+    pub username: String,
+    pub email: String,
+    pub profile_pic_url: String,
+}
+
 pub fn user_password_hash(unhashed: &String) -> String {
     let cost = 10;
     bcrypt::hash(unhashed, cost).unwrap()
