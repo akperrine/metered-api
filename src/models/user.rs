@@ -19,6 +19,13 @@ pub struct User {
     pub email: String,
     pub password: String,
     pub profile_pic_url: String,
+    pub account: UserAccount,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct UserAccount {
+    pub bill: i32,
+    pub earnings: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
@@ -28,6 +35,7 @@ pub struct PublicUser {
     #[validate(email)]
     pub email: String,
     pub profile_pic_url: String,
+    pub account: UserAccount,
 }
 
 impl From<User> for PublicUser {
@@ -37,6 +45,7 @@ impl From<User> for PublicUser {
             username: user.username.clone(),
             email: user.email.clone(),
             profile_pic_url: user.profile_pic_url.clone(),
+            account: user.account.clone(),
         }
     }
 }
@@ -62,6 +71,10 @@ where
             email: String::from("a@b.com"),
             username: String::from("dummy_user"),
             profile_pic_url: String::from("image_name"),
+            account: UserAccount {
+                bill: 0,
+                earnings: 0,
+            },
         };
         Ok(user)
     }
@@ -77,6 +90,10 @@ impl User {
             email,
             password: hashed_password,
             profile_pic_url: String::from("default_profile.png"),
+            account: UserAccount {
+                bill: 0,
+                earnings: 0,
+            },
         }
     }
 }
