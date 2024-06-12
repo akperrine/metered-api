@@ -1,17 +1,15 @@
-use std::fs;
 use std::str::FromStr;
-use std::{env, time::Duration};
+use std::time::Duration;
 
 use axum::{
     body::Bytes,
-    extract::{multipart, Multipart, Path},
+    extract::{Multipart, Path},
     http::{header, StatusCode},
     response::{IntoResponse, Json},
     routing::{delete, get, post},
     Router,
 };
 use axum_macros::debug_handler;
-use bson::Document;
 use futures_util::AsyncWriteExt;
 use futures_util::{AsyncReadExt, TryStreamExt};
 use image::ImageFormat;
@@ -154,7 +152,7 @@ async fn update_user_profile_pic(
     bucket.delete(Bson::ObjectId(obj_id)).await.ok();
     // If does update, else insert
     while let Some(mut field) = multipart.next_field().await.unwrap() {
-        let res = field.name().unwrap() == "file";
+        // let res: bool = field.name().unwrap() == "file";
 
         if field.name().unwrap().eq("file") {
             let name = field.name().unwrap().to_string();
@@ -233,7 +231,6 @@ async fn delete_user_profile_pic(Json(user): Json<DtoUser>) {
         println!("{:?}", item);
         let id = item.id;
         bucket.delete(id).await.unwrap();
-        //TODO: see if delete and then update user profile
     }
 
     let collection: Collection<User> = connection.collection("users");
