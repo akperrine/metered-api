@@ -6,7 +6,6 @@ use axum_extra::{
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
-use wither::bson::doc;
 
 use crate::middleware::auth::{validate_auth_token, AuthError};
 
