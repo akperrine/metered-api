@@ -1,13 +1,27 @@
+use std::{
+    convert::Infallible,
+    fs::File,
+    io::{BufWriter, Read, Write},
+    str::FromStr,
+};
+
 use axum::{
+    body::Body,
     extract::{Multipart, Path},
+    http::{header, Response, StatusCode},
     response::IntoResponse,
     routing::{delete, get, post},
     Json, Router,
 };
+use base64::Engine;
+use bson::{doc, oid::ObjectId, Document};
+use bytes::Bytes;
+use futures::{io::Cursor, TryStreamExt};
+use mime::Mime;
 use mongodb::Collection;
-use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use tokio_util::io::ReaderStream;
 
 use crate::db::connection;
 
@@ -19,8 +33,28 @@ pub fn create_route() -> Router {
         .route("/files/remove", delete(delete_file))
 }
 
-pub async fn get_file_by_id(Path(id): Path<String>) {
+pub async fn get_file_by_id(
+    Path(id): Path<String>,
+) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
+    let db = connection().await;
+    let collection: Collection<AppFile> = db.collection("files");
     println!("{:?}", id);
+    let obj_id = ObjectId::from_str(&id).expect("could not convert id to ObjectId");
+
+    let mut cursor = collection.find(doc! {"_id": obj_id}, None).await.unwrap();
+
+    while let Some(file) = cursor.try_next().await.unwrap() {
+        let streamBody = Body::from(file.data);
+
+        let headers = [(header::CONTENT_TYPE, "application/pdf")];
+
+        return Ok((headers, streamBody));
+    }
+
+    Err(error_fmt(
+        StatusCode::BAD_REQUEST,
+        "Request not processed correctly",
+    ))
 }
 
 pub async fn get_file_as_view() {}
@@ -33,8 +67,8 @@ pub async fn post_new_file(
             println!("{:?}", field.file_name().unwrap());
             // println!("{:?}", field.bytes().await);
             let db = connection().await;
-            let collection: Collection<File> = db.collection("files");
-            let file_to_insert = File {
+            let collection: Collection<AppFile> = db.collection("files");
+            let file_to_insert = AppFile {
                 name: field.file_name().unwrap().to_string(),
                 data: field.bytes().await.unwrap().to_vec(),
             };
@@ -55,9 +89,9 @@ pub async fn post_new_file(
 pub async fn delete_file() {}
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct File {
-    name: String,
-    data: Vec<u8>,
+pub struct AppFile {
+    pub name: String,
+    pub data: Vec<u8>,
 }
 
 fn error_fmt(status_code: StatusCode, message: &str) -> (StatusCode, Vec<u8>) {
