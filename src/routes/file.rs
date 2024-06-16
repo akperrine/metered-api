@@ -105,10 +105,11 @@ pub async fn get_file_as_view(
 pub async fn post_new_file(
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (StatusCode, Vec<u8>)> {
+    let filler_id = ObjectId::new();
     let mut file_to_insert = AppFile {
         name: String::from(""),
         data: vec![],
-        owner_id: ObjectId::new(),
+        owner_id: filler_id,
     };
     while let Some(field) = multipart.next_field().await.unwrap() {
         if field.name().unwrap().eq("file") {
@@ -127,11 +128,16 @@ pub async fn post_new_file(
 
         // println!("{:?}", res.await.unwrap());
     }
-    let db = connection().await;
-    println!("{:?}", file_to_insert.owner_id);
-    let collection: Collection<AppFile> = db.collection("files");
-    let res = collection.insert_one(file_to_insert, None).await.unwrap();
-    return Ok((StatusCode::CREATED, Json("user successfully loaded")));
+    if file_to_insert.data.len() > 0
+        && file_to_insert.name != ""
+        && file_to_insert.owner_id != filler_id
+    {
+        let db = connection().await;
+        println!("{:?}", file_to_insert.owner_id);
+        let collection: Collection<AppFile> = db.collection("files");
+        let res = collection.insert_one(file_to_insert, None).await.unwrap();
+        return Ok((StatusCode::CREATED, Json("user successfully loaded")));
+    }
 
     return Err(error_fmt(
         StatusCode::BAD_REQUEST,
