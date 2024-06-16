@@ -136,7 +136,7 @@ pub async fn post_new_file(
         println!("{:?}", file_to_insert.owner_id);
         let collection: Collection<AppFile> = db.collection("files");
         let res = collection.insert_one(file_to_insert, None).await.unwrap();
-        return Ok((StatusCode::CREATED, Json("user successfully loaded")));
+        return Ok((StatusCode::CREATED, Json("File successfully loaded")));
     }
 
     return Err(error_fmt(
