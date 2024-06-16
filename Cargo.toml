@@ -10,6 +10,7 @@ edition = "2021"
 axum = {version = "0.7.5", features = ["multipart"]}
 axum-extra = {version = "0.9.3", features = ["typed-header"]}
 axum-macros = "0.4.1"
+base64 = "0.22.1"
 bcrypt = "0.15.1"
 chrono = "0.4.37"
 futures-util = "0.3.30"
@@ -21,7 +22,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1.0"
 tokio = {version = "1.37.0", features = ["full"]}
 toml = "0.8.12"
-wither = "0.9.0"
 serde_json = "1.0"
 thiserror = "1.0.58"
 reqwest = { version = "0.12.4", features = ["stream","multipart","json"] }
@@ -37,3 +37,5 @@ futures = "0.3"
 bson = "2.10.0"
 time = "0.3.36"
 validator = { version = "0.18.1", features = ["derive"] }
+mime = "0.3"
+bytes = "1.6.0"
